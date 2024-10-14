@@ -13,6 +13,7 @@ export class OrdersService {
   }
 
   findOne(id: number) {
+    console.log('id :', id);
     return `This action returns a #${id} order`;
   }
 }
