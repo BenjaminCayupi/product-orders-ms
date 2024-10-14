@@ -1,13 +1,8 @@
-import {
-  Controller,
-  HttpStatus,
-  NotImplementedException,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { Controller, ParseUUIDPipe } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { ChangeOrderStatus, OrderPaginationDto } from './dto';
+import { ChangeOrderStatusDto, OrderPaginationDto } from './dto';
 
 @Controller()
 export class OrdersController {
@@ -25,15 +20,11 @@ export class OrdersController {
 
   @MessagePattern('findOneOrder')
   async findOne(@Payload('id', ParseUUIDPipe) id: string) {
-    const order = await this.ordersService.findOne(id);
+    return this.ordersService.findOne(id);
+  }
 
-    if (!order) {
-      throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: `Order with #id ${id} not found.`,
-      });
-    }
-
-    return order;
+  @MessagePattern('changeOrderStatus')
+  changeOrderStatus(@Payload() changeOrderStatusDto: ChangeOrderStatusDto) {
+    return this.ordersService.changeStatus(changeOrderStatusDto);
   }
 }
