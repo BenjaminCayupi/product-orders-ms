@@ -33,9 +33,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const ids = items.map((i) => i.productId);
 
     try {
-      const products = await firstValueFrom(
-        this.productClient.send({ cmd: 'validate_products' }, ids),
-      );
+      const products = await this.getProductsByIds(ids);
 
       /* Calcular valores */
       const totalAmount = items.reduce((acc, orderItem) => {
@@ -118,6 +116,15 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   async findOne(id: string) {
     const order = await this.order.findFirst({
       where: { id },
+      include: {
+        OrderItem: {
+          select: {
+            quantity: true,
+            price: true,
+            productId: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -127,7 +134,16 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       });
     }
 
-    return order;
+    const productIds = order.OrderItem.map((orderItem) => orderItem.productId);
+    const products = await this.getProductsByIds(productIds);
+
+    return {
+      ...order,
+      OrderItem: order.OrderItem.map((orderItem) => ({
+        ...orderItem,
+        name: products.find((p) => p.id === orderItem.productId).name,
+      })),
+    };
   }
 
   async changeStatus(changeOrderStatusDto: ChangeOrderStatusDto) {
@@ -140,5 +156,17 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     }
 
     return this.order.update({ where: { id }, data: { status } });
+  }
+
+  async getProductsByIds(ids: number[]) {
+    try {
+      const products = await firstValueFrom(
+        this.productClient.send({ cmd: 'validate_products' }, ids),
+      );
+
+      return products;
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 }
