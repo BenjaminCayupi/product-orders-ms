@@ -37,7 +37,50 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         this.productClient.send({ cmd: 'validate_products' }, ids),
       );
 
-      return products;
+      /* Calcular valores */
+      const totalAmount = items.reduce((acc, orderItem) => {
+        const price = products.find(
+          (product) => product.id === orderItem.productId,
+        ).price;
+        return acc + price * orderItem.quantity;
+      }, 0);
+
+      const totalItems = items.reduce((acc, orderItem) => {
+        return acc + orderItem.quantity;
+      }, 0);
+
+      const order = await this.order.create({
+        data: {
+          totalAmount,
+          totalItems,
+          OrderItem: {
+            createMany: {
+              data: createOrderDto.items.map(({ productId, quantity }) => ({
+                productId,
+                quantity,
+                price: products.find((p) => p.id === productId).price,
+              })),
+            },
+          },
+        },
+        include: {
+          OrderItem: {
+            select: {
+              quantity: true,
+              price: true,
+              productId: true,
+            },
+          },
+        },
+      });
+
+      return {
+        ...order,
+        OrderItem: order.OrderItem.map((oi) => ({
+          ...oi,
+          name: products.find((p) => p.id === oi.productId).name,
+        })),
+      };
     } catch (error) {
       throw new RpcException(error);
     }
