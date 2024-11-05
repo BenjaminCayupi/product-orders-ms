@@ -13,10 +13,9 @@ steps:
         'push',
         'southamerica-west1-docker.pkg.dev/microservices-440716/image-registry/orders-ms',
       ]
-
+options:
+  logging: CLOUD_LOGGING_ONLY
 availableSecrets:
   secretManager:
     - versionName: projects/385108971524/secrets/orders_database_url
       env: 'DATABASE_URL'
-options:
-  logging: CLOUD_LOGGING_ONLY
